@@ -1,16 +1,3 @@
-run() {
-  read -p "Please enter your user name ($USER): " username
-  read -s -p "Please enter your password: " password
-  # the newline in password doesn't get used, so inject a newline
-  info ""
-
-  if [ -z "$username" ]; then
-    username="$USER"
-  fi
-
-  pull_request
-}
-
 branch_id() {
   git rev-parse --symbolic-full-name HEAD
 }
@@ -25,6 +12,7 @@ branch_commit_messages() {
 }
 
 generate_data() {
+  # user must be looked up by name and not email
   cat <<EOF
 {
   "title": "$(branch_name)",
@@ -63,4 +51,17 @@ pull_request() {
   # flatten the json
   data=$(echo "$data" | tr "\n" " ")
   curl -si 'https://wbe_headless:yahoo@stash.greenplum.com/rest/api/1.0/projects/heim/repos/heimdall/pull-requests' -X POST -H'Content-Type: application/json' -d"$data"
+}
+
+run() {
+  read -p "Please enter your user name ($USER): " username
+  read -s -p "Please enter your password: " password
+  # the newline in password doesn't get used, so inject a newline
+  info ""
+
+  if [ -z "$username" ]; then
+    username="$USER"
+  fi
+
+  pull_request
 }
