@@ -1,0 +1,62 @@
+#!/usr/bin/env bash
+
+##
+## Review is a CLI for automating code review with stash.
+##
+
+set -e
+
+bin=$(dirname "$0")
+bin=$(cd "$bin">/dev/null; pwd)
+
+SUBCMD_DIR="$bin/subcmds"
+
+info() {
+  echo "$@"
+}
+
+warn() {
+  echo "$@" 1>&2
+}
+
+fatal() {
+  warn "$@"
+  exit 1
+}
+
+commands() {
+  for cmd in $(ls $SUBCMD_DIR/*.sh | sed "s;$bin/subcmds/;;g" | sed 's;.sh;;g')
+  do
+    # "  $cmd   $summary"
+    printf "  %-10s%s\n" "$cmd" "$(cat $bin/subcmds/$cmd.summary)"
+  done
+}
+
+usage() {
+  cat <<EOF 1>&2
+Usage: review COMMAND [arg...]
+
+Commands:
+$(commands)
+EOF
+  exit 1
+}
+
+main() {
+  if [ $# -lt 1 ]; then
+    usage
+  fi
+
+  local cmd="$1"; shift
+
+  if [ -e "$SUBCMD_DIR/$cmd.sh" ]; then
+    . "$SUBCMD_DIR/$cmd.sh" 
+    run "$@"
+  else
+    warn "Unknown command: $cmd"
+    usage
+  fi
+}
+
+main "$@"
+
