@@ -1,5 +1,5 @@
 run() {
-  read -p "Please enter your username ($USER): " username
+  read -p "Please enter your user name ($USER): " username
   read -s -p "Please enter your password: " password
   # the newline in password doesn't get used, so inject a newline
   info ""
@@ -8,41 +8,59 @@ run() {
     username="$USER"
   fi
 
-  echo "I got your password ($password) $username!"
+  pull_request
 }
 
-# The structure of a pull-request is as follows
-# POST application/json /rest/api/1.0/projects/{projectKey}/repos/{repositorySlug}/pull-requests
-# {
-#   "title": "<name>",
-#   "description": "<desc>",
-#   "open": true,
-#   "closed": false,
-#   "fromRef": {
-#     "id": "refs/heads/feature-ABC-123",
-#     "name": null,
-#     "project": {
-#       "key": "PRJ"
-#     }
-#   },
-#   "toRef": {
-#     "id": "refs/heads/master",
-#     "repository": {
-#       "slug": "my-repo",
-#       "name": null,
-#       "project": {
-#         "key": "PRJ"
-#       }
-#     }
-#   },
-#   "reviewers": [
-#     {
-#       "user": {
-#         "name": "charlie",
-#         "emailAddress": "charlie@gopivotal.com"
-#       }
-#     }
-#   ]
-# }
+branch_id() {
+  git rev-parse --symbolic-full-name HEAD
+}
+
+branch_name() {
+  git rev-parse --abbrev-ref HEAD
+}
+
+branch_commit_messages() {
+  local fromBranch="$1"
+  git log ${fromBranch}..HEAD --no-merges --no-color --pretty=format:%s
+}
+
+generate_data() {
+  cat <<EOF
+{
+  "title": "$(branch_name)",
+  "description": "$(branch_commit_messages master)",
+  "open": true,
+  "closed": false,
+  "fromRef": {
+    "id": "$(branch_id)",
+    "project": {
+      "key": "HEIM"
+    }
+  },
+  "toRef": {
+    "id": "refs/heads/master",
+    "repository": {
+      "slug": "heimdall",
+      "name": "heimdall",
+      "project": {
+        "key": "HEIM"
+      }
+    }
+  },
+  "reviewers": [
+    {
+      "user": {
+        "name": "munges"
+      }
+    }
+  ]
+}
+EOF
+}
+
 pull_request() {
+  local data="$(generate_data)"
+  # flatten the json
+  data=$(echo "$data" | tr "\n" " ")
+  curl -si 'https://wbe_headless:yahoo@stash.greenplum.com/rest/api/1.0/projects/heim/repos/heimdall/pull-requests' -X POST -H'Content-Type: application/json' -d"$data"
 }
