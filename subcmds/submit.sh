@@ -11,6 +11,26 @@ branch_commit_messages() {
   git log ${fromBranch}..HEAD --no-merges --no-color --pretty=format:%s
 }
 
+# parse_yaml() {
+#    local prefix=$2
+#    local s='[[:space:]]*' w='[a-zA-Z0-9_]*' fs=$(echo @|tr @ '\034')
+#    sed -ne "s|^\($s\)\($w\)$s:$s\"\(.*\)\"$s\$|\1$fs\2$fs\3|p" \
+#         -e "s|^\($s\)\($w\)$s:$s\(.*\)$s\$|\1$fs\2$fs\3|p"  $1 |
+#    awk -F$fs '{
+#       indent = length($1)/2;
+#       vname[indent] = $2;
+#       for (i in vname) {if (i > indent) {delete vname[i]}}
+#       if (length($3) > 0) {
+#          vn=""; for (i=0; i<indent; i++) {vn=(vn)(vname[i])("_")}
+#          printf("%s%s%s=\"%s\"\n", "'$prefix'",vn, $2, $3);
+#       }
+#    }'
+# }
+
+function ryaml {
+  ruby -ryaml -e 'puts ARGV[1..-1].inject(YAML.load(File.read(ARGV[0]))) {|acc, key| acc[key] }' "$@"
+}
+
 generate_data() {
   # user must be looked up by name and not email
   cat <<EOF
@@ -54,14 +74,16 @@ pull_request() {
 }
 
 run() {
-  read -p "Please enter your user name ($USER): " username
-  read -s -p "Please enter your password: " password
-  # the newline in password doesn't get used, so inject a newline
-  info ""
+  # read -p "Please enter your user name ($USER): " username
+  # read -s -p "Please enter your password: " password
+  # # the newline in password doesn't get used, so inject a newline
+  # info ""
 
-  if [ -z "$username" ]; then
-    username="$USER"
-  fi
+  # if [ -z "$username" ]; then
+  #   username="$USER"
+  # fi
 
-  pull_request
+  #pull_request
+
+  ryaml .reviewrc
 }
