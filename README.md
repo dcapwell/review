@@ -1,9 +1,6 @@
 # Review
 
-Introduction
-------------
-
-Review is a tool to automate common tasks taken while working with Stash pull-requests.
+A tool to automate common tasks taken while working with Stash pull-requests.
 
 Example
 -------
