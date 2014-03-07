@@ -18,6 +18,7 @@ generate_reviewers() {
     list+=( "{ \"user\": { \"name\": \"$user\" } }")
   done
 
+  ##TODO how can I do this in a function?  Can't find a way to pass arrays around
   SAVE_IFS=$IFS
   IFS=","
   echo "${list[*]}"
