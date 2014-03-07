@@ -76,7 +76,7 @@ pull_request() {
     info "Branch: ${to_branch}"
     info "POST data: ${data}"
   fi
-  curl -s --show-error -u "${USERNAME}" "${stash_url}" -X POST -H'Content-Type: application/json' -d"$data" | python -mjson.tool
+  curl -s --show-error -u "${USERNAME}" "${stash_url}" -X POST -H'Content-Type: application/json' -d"$data"
 }
 
 run() {

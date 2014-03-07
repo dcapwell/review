@@ -9,6 +9,12 @@ set -e
 bin=$(dirname "$0")
 bin=$(cd "$bin">/dev/null; pwd)
 
+if [ -L "$bin/review" ]; then
+  # its a symlink, so set bin to where the real file is
+  bin=$(dirname $(readlink "$bin/review"))
+  bin=$(cd "$bin">/dev/null; pwd)
+fi
+
 SUBCMD_DIR="$bin/subcmds"
 
 info() {
