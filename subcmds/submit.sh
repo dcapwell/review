@@ -11,25 +11,6 @@ branch_commit_messages() {
   git log ${fromBranch}..HEAD --no-merges --no-color --pretty=format:%s
 }
 
-# parse_yaml() {
-#    local prefix=$2
-#    local s='[[:space:]]*' w='[a-zA-Z0-9_]*' fs=$(echo @|tr @ '\034')
-#    sed -ne "s|^\($s\)\($w\)$s:$s\"\(.*\)\"$s\$|\1$fs\2$fs\3|p" \
-#         -e "s|^\($s\)\($w\)$s:$s\(.*\)$s\$|\1$fs\2$fs\3|p"  $1 |
-#    awk -F$fs '{
-#       indent = length($1)/2;
-#       vname[indent] = $2;
-#       for (i in vname) {if (i > indent) {delete vname[i]}}
-#       if (length($3) > 0) {
-#          vn=""; for (i=0; i<indent; i++) {vn=(vn)(vname[i])("_")}
-#          printf("%s%s%s=\"%s\"\n", "'$prefix'",vn, $2, $3);
-#       }
-#    }'
-# }
-
-function ryaml {
-  ruby -ryaml -e 'puts ARGV[1..-1].inject(YAML.load(File.read(ARGV[0]))) {|acc, key| acc[key] }' "$@"
-}
 
 generate_data() {
   # user must be looked up by name and not email
@@ -42,23 +23,23 @@ generate_data() {
   "fromRef": {
     "id": "$(branch_id)",
     "project": {
-      "key": "HEIM"
+      "key": "${to_project}"
     }
   },
   "toRef": {
-    "id": "refs/heads/master",
+    "id": "refs/heads/${to_branch}",
     "repository": {
-      "slug": "heimdall",
-      "name": "heimdall",
+      "slug": "${to_repo}",
+      "name": "${to_repo}",
       "project": {
-        "key": "HEIM"
+        "key": "${to_project}"
       }
     }
   },
   "reviewers": [
     {
       "user": {
-        "name": "munges"
+        "name": "${reviewers[0]}"
       }
     }
   ]
@@ -69,21 +50,27 @@ EOF
 pull_request() {
   local data="$(generate_data)"
   # flatten the json
-  data=$(echo "$data" | tr "\n" " ")
-  curl -si 'https://wbe_headless:yahoo@stash.greenplum.com/rest/api/1.0/projects/heim/repos/heimdall/pull-requests' -X POST -H'Content-Type: application/json' -d"$data"
+  data=$(echo "$data" | tr -s "\n")
+  if [ "$DEBUG" == "true" ]; then
+    info "Attempting to submit a pull request for ${USERNAME} with the following details"
+    info "Project: ${to_project}"
+    info "Repo: ${to_repo}"
+    info "Branch: ${to_branch}"
+    info "POST data: ${data}"
+  fi
+  curl -s --show-error --digest -u "${USERNAME}" "${stash}/rest/api/1.0/projects/${to_project}/repos/${to_repo}/pull-requests" -X POST -H'Content-Type: application/json' -d"$data"
 }
 
 run() {
-  # read -p "Please enter your user name ($USER): " username
-  # read -s -p "Please enter your password: " password
-  # # the newline in password doesn't get used, so inject a newline
-  # info ""
+  ##TODO talk to Bob about caching this detail
+  ##TODO --netrc could be useful?
+  read -p "Enter host user name (default: '$USER'): " USERNAME
 
-  # if [ -z "$username" ]; then
-  #   username="$USER"
-  # fi
+  if [ -z "$USERNAME" ]; then
+    USERNAME="$USER"
+  fi
 
-  #pull_request
+  export USERNAME
 
-  ryaml .reviewrc
+  pull_request
 }

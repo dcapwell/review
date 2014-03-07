@@ -12,23 +12,45 @@ bin=$(cd "$bin">/dev/null; pwd)
 SUBCMD_DIR="$bin/subcmds"
 
 info() {
-  echo "$@"
+  echo "[INFO] - $@"
 }
 
 warn() {
-  echo "$@" 1>&2
+  echo "[WARN] - $@" 1>&2
 }
 
 fatal() {
-  warn "$@"
+  echo "[FATAL] - $@" 1>&2
   exit 1
 }
 
+parse_config() {
+  ruby <<EOF
+require 'yaml'
+
+def to_bash(prefix, data)
+  data.each do |key, value|
+    if value.class == Hash then
+      to_bash("#{key}_", value)
+    elsif value.class == Array then
+      puts "#{prefix}#{key}=(#{value.join(' ')})"
+    else
+      puts "#{prefix}#{key}=\"#{value}\""
+    end
+  end
+end
+
+data = YAML.load(File.read('.reviewrc'))
+
+to_bash("", data)
+EOF
+}
+
 commands() {
-  for cmd in $(ls $SUBCMD_DIR/*.sh | sed "s;$bin/subcmds/;;g" | sed 's;.sh;;g')
+  for cmd in $(ls $SUBCMD_DIR/*.sh | sed "s;$SUBCMD_DIR/;;g" | sed 's;.sh;;g')
   do
     # "  $cmd   $summary"
-    printf "  %-10s%s\n" "$cmd" "$(cat $bin/subcmds/$cmd.summary)"
+    printf "  %-10s%s\n" "$cmd" "$(cat $SUBCMD_DIR/$cmd.summary)"
   done
 }
 
@@ -46,6 +68,8 @@ main() {
   if [ $# -lt 1 ]; then
     usage
   fi
+
+  eval $(parse_config)
 
   local cmd="$1"; shift
 
