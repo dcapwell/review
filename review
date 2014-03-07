@@ -12,15 +12,15 @@ bin=$(cd "$bin">/dev/null; pwd)
 SUBCMD_DIR="$bin/subcmds"
 
 info() {
-  echo "[INFO] - $@"
+  echo "[INFO] : $@"
 }
 
 warn() {
-  echo "[WARN] - $@" 1>&2
+  echo "[WARN] : $@" 1>&2
 }
 
 fatal() {
-  echo "[FATAL] - $@" 1>&2
+  echo "[FATAL] : $@" 1>&2
   exit 1
 }
 
@@ -69,11 +69,11 @@ main() {
     usage
   fi
 
-  eval $(parse_config)
-
   local cmd="$1"; shift
 
   if [ -e "$SUBCMD_DIR/$cmd.sh" ]; then
+    # eval is evil?  Is there a cleaner way to do this with the YAML config?
+    eval $(parse_config)
     . "$SUBCMD_DIR/$cmd.sh" 
     run "$@"
   else
