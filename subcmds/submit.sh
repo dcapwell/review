@@ -11,6 +11,22 @@ branch_commit_messages() {
   git log ${fromBranch}..HEAD --no-merges --no-color --pretty=format:%s
 }
 
+generate_reviewers() {
+  local list=()
+  for user in ${reviewers[@]}
+  do
+    list+=( "{ \"user\": { \"name\": \"$user\" } }")
+  done
+
+  SAVE_IFS=$IFS
+  IFS=","
+  echo "${list[*]}"
+  IFS=$SAVE_IFS
+}
+
+to_lowercase() {
+  echo "$@" | tr '[:upper:]' '[:lower:]'
+}
 
 generate_data() {
   # user must be looked up by name and not email
@@ -37,11 +53,7 @@ generate_data() {
     }
   },
   "reviewers": [
-    {
-      "user": {
-        "name": "${reviewers[0]}"
-      }
-    }
+    $(generate_reviewers)
   ]
 }
 EOF
@@ -50,18 +62,20 @@ EOF
 pull_request() {
   local data="$(generate_data)"
   # flatten the json
-  data=$(echo "$data" | tr -s "\n")
+  data=$(echo "$data" | tr "\n" " ")
+  local stash_url="${stash}/rest/api/1.0/projects/$(to_lowercase ${to_project})/repos/${to_repo}/pull-requests"
   if [ "$DEBUG" == "true" ]; then
     ##TODO find a cleaner way to flush after the read.  This only affects
     ## this part of the stdout
     echo ""
     info "Attempting to submit a pull request for ${USERNAME} with the following details"
+    info "Stash URL: ${stash_url}"
     info "Project: ${to_project}"
     info "Repo: ${to_repo}"
     info "Branch: ${to_branch}"
     info "POST data: ${data}"
   fi
-  curl -s --show-error --digest -u "${USERNAME}" "${stash}/rest/api/1.0/projects/${to_project}/repos/${to_repo}/pull-requests" -X POST -H'Content-Type: application/json' -d"$data"
+  curl -s --show-error -u "${USERNAME}" "${stash_url}" -X POST -H'Content-Type: application/json' -d"$data" | python -mjson.tool
 }
 
 run() {
