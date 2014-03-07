@@ -52,6 +52,9 @@ pull_request() {
   # flatten the json
   data=$(echo "$data" | tr -s "\n")
   if [ "$DEBUG" == "true" ]; then
+    ##TODO find a cleaner way to flush after the read.  This only affects
+    ## this part of the stdout
+    echo ""
     info "Attempting to submit a pull request for ${USERNAME} with the following details"
     info "Project: ${to_project}"
     info "Repo: ${to_repo}"
