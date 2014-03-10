@@ -68,6 +68,30 @@ tmp_dir() {
   echo "$dir"
 }
 
+extract_json_value() {
+  local file="$1"
+  local key="$2"
+
+  python <<EOF
+import json
+json_data = open('${file}')
+data = json.load(json_data)
+json_data.close()
+
+print data['${key}']
+EOF
+}
+
+review_dir() {
+  if [ $# -lt 1 ]; then
+    fatal "review_dir requires the id of the review"
+  fi
+  local id="$1"
+  local dir="${DATA_DIR}/reviews/${id}"
+
+  echo "$dir"
+}
+
 pull_request() {
   ## get post body
   local data="$(generate_data)"
@@ -94,7 +118,15 @@ pull_request() {
     info "Staging dir: ${staging_dir}"
     info "Results file: ${results}"
   fi
-  curl -s --show-error --output "${results}" -u "${USERNAME}" "${stash_url}" -X POST -H'Content-Type: application/json' -d"$data"
+  curl -s --show-error --fail --write-out "@http_code" --output "${results}" -u "${USERNAME}" "${stash_url}" -X POST -H'Content-Type: application/json' -d"$data"
+
+  if [ -e "$results" ]; then
+    ## find the id from the json and save that to the review db
+    local id=$(extract_json_value "$results" "id")
+    local review=$(review_dir "$id")
+    mkdir -p "$review"
+    mv "$results" "$review/pull-request.json"
+  fi
 }
 
 run() {
