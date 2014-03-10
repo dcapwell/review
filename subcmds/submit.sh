@@ -118,7 +118,7 @@ pull_request() {
     info "Staging dir: ${staging_dir}"
     info "Results file: ${results}"
   fi
-  curl -s --show-error --fail --write-out "@http_code" --output "${results}" -u "${USERNAME}" "${stash_url}" -X POST -H'Content-Type: application/json' -d"$data"
+  curl -s --show-error --fail --output "${results}" -u "${USERNAME}" "${stash_url}" -X POST -H'Content-Type: application/json' -d"$data"
 
   if [ -e "$results" ]; then
     ## find the id from the json and save that to the review db
