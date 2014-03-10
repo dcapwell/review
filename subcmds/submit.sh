@@ -13,7 +13,7 @@ branch_commit_messages() {
 
 generate_reviewers() {
   local list=()
-  for user in ${reviewers[@]}
+  for user in "${reviewers[@]}"
   do
     list+=( "{ \"user\": { \"name\": \"$user\" } }")
   done
