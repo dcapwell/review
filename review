@@ -4,32 +4,46 @@
 ## Review is a CLI for automating code review with stash.
 ##
 
+## fail fast
 set -e
 
 bin=$(dirname "$0")
 bin=$(cd "$bin">/dev/null; pwd)
 
+## if the command run is a symlink, then follow the link
+## Needed so subcmds can be found
 if [ -L "$bin/review" ]; then
   # its a symlink, so set bin to where the real file is
   bin=$(dirname $(readlink "$bin/review"))
   bin=$(cd "$bin">/dev/null; pwd)
 fi
 
+## Location of subcommands
 SUBCMD_DIR="$bin/subcmds"
 
+## Where all review data is stored.
+DATA_DIR=".review"
+
+## Configuration that defines where to merge to
+CONFIG_FILE=".reviewrc"
+
+## Log a 'info' level message
 info() {
   echo "[INFO] : $@"
 }
 
+## Log a 'warn' level message to stderr
 warn() {
   echo "[WARN] : $@" 1>&2
 }
 
+## Log a 'fatal' level message to stderr and terminate the process
 fatal() {
   echo "[FATAL] : $@" 1>&2
   exit 1
 }
 
+## Loads the review configs into the bash session
 parse_config() {
   ruby <<EOF
 require 'yaml'
@@ -46,12 +60,14 @@ def to_bash(prefix, data)
   end
 end
 
-data = YAML.load(File.read('.reviewrc'))
+data = YAML.load(File.read('${CONFIG_FILE}'))
 
 to_bash("", data)
 EOF
 }
 
+## find all subcommands
+## this function will list out each subcommand followed by an optional summary for each command
 commands() {
   for cmd in $(ls $SUBCMD_DIR/*.sh | sed "s;$SUBCMD_DIR/;;g" | sed 's;.sh;;g')
   do
@@ -60,6 +76,7 @@ commands() {
   done
 }
 
+## displays the usage details to the user then terminates the process
 usage() {
   cat <<EOF 1>&2
 Usage: review COMMAND [arg...]
@@ -70,6 +87,7 @@ EOF
   exit 1
 }
 
+## entry point for review.  This method will figure out which subcommand to delegate to
 main() {
   if [ $# -lt 1 ]; then
     usage
@@ -78,8 +96,15 @@ main() {
   local cmd="$1"; shift
 
   if [ -e "$SUBCMD_DIR/$cmd.sh" ]; then
+    # load the configs into the session
     # eval is evil?  Is there a cleaner way to do this with the YAML config?
     eval $(parse_config)
+
+    # if data dir doesn't exist, create it
+    if [ ! -e "$DATA_DIR" ]; then
+      mkdir "$DATA_DIR"
+    fi
+
     . "$SUBCMD_DIR/$cmd.sh" 
     run "$@"
   else
