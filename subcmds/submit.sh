@@ -40,6 +40,7 @@ generate_data() {
   "fromRef": {
     "id": "$(branch_id)",
     "project": {
+
       "key": "${to_project}"
     }
   },
@@ -60,11 +61,26 @@ generate_data() {
 EOF
 }
 
+## create a temp file for processing
+tmp_dir() {
+  local dir="/tmp/review/work/$(uuidgen)"
+  mkdir -p "$dir"
+  echo "$dir"
+}
+
 pull_request() {
+  ## get post body
   local data="$(generate_data)"
   # flatten the json
   data=$(echo "$data" | tr "\n" " ")
+
+  ## http url to post to
   local stash_url="${stash}/rest/api/1.0/projects/$(to_lowercase ${to_project})/repos/${to_repo}/pull-requests"
+
+  ## get staging directory
+  local staging_dir=$(tmp_dir)
+  local results="$staging_dir/result.json"
+
   if [ "$DEBUG" == "true" ]; then
     ##TODO find a cleaner way to flush after the read.  This only affects
     ## this part of the stdout
@@ -75,8 +91,10 @@ pull_request() {
     info "Repo: ${to_repo}"
     info "Branch: ${to_branch}"
     info "POST data: ${data}"
+    info "Staging dir: ${staging_dir}"
+    info "Results file: ${results}"
   fi
-  curl -s --show-error -u "${USERNAME}" "${stash_url}" -X POST -H'Content-Type: application/json' -d"$data"
+  curl -s --show-error --output "${results}" -u "${USERNAME}" "${stash_url}" -X POST -H'Content-Type: application/json' -d"$data"
 }
 
 run() {
